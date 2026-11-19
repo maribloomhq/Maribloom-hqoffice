@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="theme-color" content="#6B3FE0">
+<meta name="apple-mobile-web-app-title" content="Maribloom HQ">
+<title>Log in · Maribloom HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#6B3FE0;--bg:#F3EEFF;--card:#fff;--ink:#1E1633;--muted:#5E567A;--line:#E2DAF7;--bad:#B3261E}
+@media (prefers-color-scheme:dark){:root{--bg:#15111F;--card:#1F1A2E;--ink:#F2EEFB;--muted:#ABA3C2;--line:#33294A;--brand:#B39BFF;--bad:#FF8A80}}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 "Instrument Sans",system-ui,sans-serif;display:grid;place-items:center;padding:20px}
+main{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;gap:16px}
+.logo{display:flex;align-items:center;gap:12px}.logo img{width:52px;height:52px;border-radius:50%;background:var(--bg)}
+h1{font:700 1.3rem "Unbounded",system-ui,sans-serif;margin:0;letter-spacing:.02em}
+p{margin:0;color:var(--muted)}
+label{font-weight:600;font-size:.95rem}
+input{width:100%;font:inherit;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);min-height:48px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+button{font:600 1rem inherit;font-family:inherit;border:0;border-radius:12px;background:var(--brand);color:#fff;min-height:48px;cursor:pointer}
+@media (prefers-color-scheme:dark){button{color:#15111F}}
+button[disabled]{opacity:.6;cursor:wait}
+.err{color:var(--bad);font-weight:600;min-height:1.5em}
+.small{font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+  <div class="logo"><img src="/assistant.png" alt=""><div><h1>MARIBLOOM</h1><p class="small">HQ · private office</p></div></div>
+  <p>Your virtual office is private. Log in with your password.</p>
+  <form id="f" novalidate>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" required style="margin-top:6px">
+    <p class="err" id="err" role="alert"></p>
+    <button id="go" type="submit" style="width:100%">Log in</button>
+  </form>
+  <p class="small">Forgot it? Change <b>APP_PASSWORD</b> in Railway → your office service → Variables.</p>
+</main>
+<script>
+document.getElementById("f").addEventListener("submit", async (e) => {
+  e.preventDefault(); const go = document.getElementById("go"), err = document.getElementById("err"), pw = document.getElementById("pw");
+  if (!pw.value) { err.textContent = "Type your password."; pw.focus(); return; }
+  go.disabled = true; err.textContent = "";
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw.value }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) { location.href = "/"; return; }
+    err.textContent = j.error || "Something went wrong. Try again."; pw.select();
+  } catch { err.textContent = "No connection. Check your internet and try again."; }
+  go.disabled = false;
+});
+</script>
+</body>
+</html>
