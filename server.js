@@ -16,7 +16,8 @@ const cookie = (req) => { const m = (req.headers.cookie || "").match(/(?:^|;\s*)
 const authed = (req) => !APP_PASSWORD || validToken(cookie(req));
 const samePass = (p) => { const a = crypto.createHash("sha256").update(String(p)).digest(), b = crypto.createHash("sha256").update(APP_PASSWORD).digest(); return crypto.timingSafeEqual(a, b); };
 /* the office page is big: keep a compressed copy ready (about 3x smaller to download) and let phones reuse it */
-const PAGE = (() => { const raw = read("index.html"); return { raw, gz: zlib.gzipSync(raw, { level: 9 }), etag: '"' + crypto.createHash("sha1").update(raw).digest("hex").slice(0, 16) + '"' }; })();
+const page = (f) => { if (!fs.existsSync(path.join(__dirname, f))) return null; const raw = read(f); return { raw, gz: zlib.gzipSync(raw, { level: 9 }), etag: '"' + crypto.createHash("sha1").update(raw).digest("hex").slice(0, 16) + '"' }; };
+const PAGES = { "/": page("index.html"), "/index.html": page("index.html"), "/head-office": page("head-office.html"), "/career": page("career.html") };
 const tries = new Map();
 const limited = (ip) => { const now = Date.now(); const t = (tries.get(ip) || []).filter((x) => now - x < 15 * 60e3); tries.set(ip, t); return t.length >= 8; };
 const send = (res, code, type, body, extra = {}) => { res.writeHead(code, { "Content-Type": type, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin", "X-Frame-Options": "SAMEORIGIN", ...extra }); res.end(body); };
@@ -42,7 +43,8 @@ http.createServer((req, res) => {
   }
   if (p === "/api/logout" && req.method === "POST") return json(res, 200, { ok: true }, { "Set-Cookie": setCookie(req, "", 0) });
   if (!authed(req)) return send(res, 302, "text/plain", "", { Location: "/login" });
-  if ((p === "/" || p === "/index.html") && req.method === "GET") {
+  const PAGE = PAGES[p];
+  if (PAGE && req.method === "GET") {
     if (req.headers["if-none-match"] === PAGE.etag) return send(res, 304, "text/html; charset=utf-8", "", { ETag: PAGE.etag, "Cache-Control": "no-cache" });
     const gz = /\bgzip\b/.test(req.headers["accept-encoding"] || "");
     return send(res, 200, "text/html; charset=utf-8", gz ? PAGE.gz : PAGE.raw, { ETag: PAGE.etag, "Cache-Control": "no-cache", Vary: "Accept-Encoding", ...(gz ? { "Content-Encoding": "gzip" } : {}) });
